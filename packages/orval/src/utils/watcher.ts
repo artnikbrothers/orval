@@ -39,10 +39,44 @@ export async function startWatcher(
     }`,
   );
 
+  // Wait for the file size to settle so a half-written spec is not read.
   const watcher = watch(watchPaths, {
     ignorePermissionErrors: true,
     ignored,
+    awaitWriteFinish: { stabilityThreshold: 200 },
   });
+
+  // Runs never overlap; changes that arrive mid-run trigger a single re-run.
+  let running = false;
+  let rerun = false;
+  const run = async (): Promise<void> => {
+    if (running) {
+      rerun = true;
+      return;
+    }
+    running = true;
+    try {
+      await watchFn();
+    } catch (error) {
+      restore(() => {
+        logger.error(error);
+      });
+    } finally {
+      running = false;
+    }
+    if (rerun) {
+      rerun = false;
+      await run();
+    }
+  };
+
+  // Unhandled watcher errors (e.g. stat failures) would otherwise crash the process.
+  watcher.on('error', (error) => {
+    restore(() => {
+      logger.error(error);
+    });
+  });
+
   watcher.on('ready', () => {
     restore(() => {
       logger.info('Initial scan complete. Watching for changes...');
@@ -50,11 +84,7 @@ export async function startWatcher(
         restore(() => {
           logger.info(`Change detected: ${type} ${file}`);
 
-          watchFn().catch((error: unknown) => {
-            restore(() => {
-              logger.error(error);
-            });
-          });
+          void run();
         });
       });
     });
