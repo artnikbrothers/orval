@@ -163,7 +163,6 @@ cli
                   await generateSpec(process.cwd(), normalizedOptions);
                 } catch (error) {
                   logger.error(error);
-                  process.exit(1);
                 }
                 if (options.failOnWarnings && getWarningCount() > 0) {
                   logger.error(
