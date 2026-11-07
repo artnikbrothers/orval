@@ -871,6 +871,34 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Zod schemas implement Standard Schema, so the mutator receiving them can
+  // validate without depending on Zod.
+  zodSchemaResponseMutatorStandardSchema: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-mutator-standard-schema/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-mutator-standard-schema/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        includeZodSchemaInArguments: true,
+        mutator: {
+          path: '../mutators/custom-fetch-standard-schema.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/fetch-zod-inline-array.yaml',
+    },
+  },
   zodSchemaResponseTags: {
     output: {
       target: '../generated/fetch/zod-schema-response-tags/endpoints.ts',

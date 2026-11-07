@@ -1045,6 +1045,7 @@
         "@modelcontextprotocol/server": "catalog:mcp",
         "@orval/core": "workspace:*",
         "@solidjs/router": "catalog:solid",
+        "@standard-schema/spec": "catalog:tooling",
         "@tanstack/angular-query-experimental": "catalog:angular",
         "@tanstack/react-query": "catalog:react",
         "@tanstack/solid-query": "catalog:solid",
@@ -1139,6 +1140,7 @@
     },
     "tooling": {
       "@faker-js/faker": "10.3.0",
+      "@standard-schema/spec": "1.1.0",
       "msw": "2.12.10",
     },
     "valibot": {
