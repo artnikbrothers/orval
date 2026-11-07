@@ -4147,8 +4147,8 @@ hands the schema to the mutator instead.
 Supported by the `fetch` client and by the query clients using
 `httpClient: 'fetch'`. Requires `schemas: { type: 'zod' }` and
 `override.fetch.runtimeValidation: true`. The schema is omitted for operations
-without a validatable response — primitive or `void` responses, and
-`application/x-ndjson` streams.
+without a validatable response — primitive or `void` responses, responses with
+several content types, and `application/x-ndjson` streams.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -4171,13 +4171,17 @@ import type { ZodType } from 'zod';
 
 export const customFetch = async <T>(
   url: string,
-  options: RequestInit & { schema?: ZodType<T> },
+  options: RequestInit & { schema?: ZodType },
 ): Promise<T> => {
   const { schema, ...init } = options;
   const response = await fetch(url, init);
-  const data = await response.json();
+  const data: unknown = await response.json();
 
-  return schema ? schema.parse(data) : (data as T);
+  return {
+    data: schema && response.ok ? schema.parse(data) : data,
+    status: response.status,
+    headers: response.headers,
+  } as T;
 };
 ```
 
@@ -4185,6 +4189,42 @@ export const customFetch = async <T>(
 `schema.parse()` throws a `ZodError` on a mismatch. Use `safeParse()` in the
 mutator if you would rather handle validation failures yourself.
 </Callout>
+
+The mutator returns the `{ data, status, headers }` shape the generated client
+declares. With `includeHttpResponseReturnType: false`, return only the data.
+
+Zod 3.24 and newer schemas implement [Standard Schema](https://standardschema.dev),
+so the mutator can validate without depending on Zod. The types come from the
+`@standard-schema/spec` package:
+
+```ts title="src/custom-fetch.ts"
+import type { StandardSchemaV1 } from '@standard-schema/spec';
+
+const validate = async (schema: StandardSchemaV1, data: unknown) => {
+  const result = await schema['~standard'].validate(data);
+
+  if (result.issues) {
+    throw new Error(result.issues.map(({ message }) => message).join('; '));
+  }
+
+  return result.value;
+};
+
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit & { schema?: StandardSchemaV1 },
+): Promise<T> => {
+  const { schema, ...init } = options;
+  const response = await fetch(url, init);
+  const data: unknown = await response.json();
+
+  return {
+    data: schema && response.ok ? await validate(schema, data) : data,
+    status: response.status,
+    headers: response.headers,
+  } as T;
+};
+```
 
 ## factoryMethods
 

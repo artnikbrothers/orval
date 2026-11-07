@@ -25,6 +25,7 @@ export default defineConfig({
             'fixtures-runtime.spec.ts',
             'reusable-zod-defaults.spec.ts',
             'standard-schema-validation.spec.ts',
+            'mutator-standard-schema.spec.ts',
           ],
         },
       },
