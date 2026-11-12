@@ -448,6 +448,7 @@ const SCHEMA_WRITING_CLIENTS: ReadonlySet<string> = new Set([
 // The clients that write their reusable component schemas next to the operations.
 const REUSABLE_SCHEMA_CLIENTS = [
   { client: OutputClient.VALIBOT, library: 'valibot', label: 'Valibot' },
+  { client: OutputClient.EFFECT, library: 'effect', label: 'Effect' },
 ] as const;
 
 /** Rejects schema-routing combinations that are unsupported by generation. */
@@ -736,6 +737,7 @@ function normalizeEffectOptions(
     useBrandedTypes: effect?.useBrandedTypes ?? false,
     exactOptional: effect?.exactOptional ?? false,
     version: effect?.version ?? 'auto',
+    generateReusableSchemas: effect?.generateReusableSchemas ?? false,
   };
 }
 
@@ -1754,19 +1756,19 @@ const tagBucketModes = new Set<OutputMode>([
 ]);
 
 function withoutReusableSchemasFlag<T extends object>(
-  valibot: T,
+  options: T,
 ): Omit<T, 'generateReusableSchemas'> {
   const { generateReusableSchemas: _ignored, ...rest } = {
     generateReusableSchemas: undefined,
-    ...valibot,
+    ...options,
   };
   return rest;
 }
 
-function isReusableSchemasFlagSet(valibot: object): boolean {
+function isReusableSchemasFlagSet(options: object): boolean {
   return (
-    'generateReusableSchemas' in valibot &&
-    valibot.generateReusableSchemas !== undefined
+    'generateReusableSchemas' in options &&
+    options.generateReusableSchemas !== undefined
   );
 }
 
@@ -1828,6 +1830,12 @@ function normalizeOperationsAndTags(
           operationZodOverrideKeys.some(
             (supportedKey) => zod[supportedKey] !== undefined,
           );
+
+        if (effect && isReusableSchemasFlagSet(effect)) {
+          logger.warn(
+            `override.${source}.${key}.effect.generateReusableSchemas is not supported - it is output-wide and configured via \`override.effect.generateReusableSchemas\`. Ignoring.`,
+          );
+        }
 
         if (valibot && isReusableSchemasFlagSet(valibot)) {
           logger.warn(
@@ -1970,7 +1978,13 @@ function normalizeOperationsAndTags(
                   },
                 }
               : {}),
-            ...(effect ? { effect: normalizeEffectOptions(effect) } : {}),
+            ...(effect
+              ? {
+                  effect: normalizeEffectOptions(
+                    withoutReusableSchemasFlag(effect),
+                  ),
+                }
+              : {}),
             // Kept partial so the deep merge only overrides what is set. The
             // output-wide reusable schemas flag never travels with it.
             ...(valibot
