@@ -5,6 +5,7 @@ import {
   isInlineSchema,
   type ContextSpec,
   conventionName,
+  createImportCheck,
   DefaultTag,
   escapeRegExp,
   findMediaType,
@@ -90,11 +91,7 @@ export function addFormatTypeImports(
   override: Pick<WriteZodOutputOptions['override'], 'formatType' | 'zod'>,
   precedingContent = '',
 ): string {
-  const isImported = (name: string) =>
-    new RegExp(
-      String.raw`^import\s[^;]*?(?<![\w$])${escapeRegExp(name)}(?![\w$])[^;]*?\sfrom\s`,
-      'm',
-    ).test(precedingContent);
+  const isImported = createImportCheck(precedingContent);
   const valueImports = getFormatTypeZodImports(content, override);
   const imports = [
     ...valueImports,

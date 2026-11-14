@@ -445,25 +445,26 @@ const SCHEMA_WRITING_CLIENTS: ReadonlySet<string> = new Set([
   OutputClient.MCP,
 ]);
 
+// The clients that write their reusable component schemas next to the operations.
+const REUSABLE_SCHEMA_CLIENTS = [
+  { client: OutputClient.VALIBOT, library: 'valibot', label: 'Valibot' },
+] as const;
+
 /** Rejects schema-routing combinations that are unsupported by generation. */
 function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   const schemas = output.schemas;
-  if (
-    isFunction(output.client) &&
-    output.override.valibot.generateReusableSchemas
-  ) {
-    throw new Error(
-      "`override.valibot.generateReusableSchemas` requires `client: 'valibot'`: the component constants are not written for a custom client.",
-    );
-  }
-  if (
-    output.client === OutputClient.VALIBOT &&
-    output.override.valibot.generateReusableSchemas &&
-    schemas
-  ) {
-    throw new Error(
-      '`override.valibot.generateReusableSchemas` cannot be combined with `output.schemas`: the reusable Valibot schemas are written next to the operations.',
-    );
+  for (const { client, library, label } of REUSABLE_SCHEMA_CLIENTS) {
+    if (!output.override[library].generateReusableSchemas) continue;
+    if (isFunction(output.client)) {
+      throw new Error(
+        `\`override.${library}.generateReusableSchemas\` requires \`client: '${library}'\`: the component constants are not written for a custom client.`,
+      );
+    }
+    if (output.client === client && schemas) {
+      throw new Error(
+        `\`override.${library}.generateReusableSchemas\` cannot be combined with \`output.schemas\`: the reusable ${label} schemas are written next to the operations.`,
+      );
+    }
   }
   if (!schemas || isString(schemas)) return;
   if (
