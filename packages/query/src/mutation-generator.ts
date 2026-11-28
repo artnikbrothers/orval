@@ -275,6 +275,12 @@ const needsQueryKeyFnCall = (
   return true;
 };
 
+/** Whether the invalidation of `target` calls its query key function. */
+export const invalidateTargetCallsQueryKeyFn = (
+  target: InvalidateTarget,
+  spec: Record<string, unknown> | undefined,
+): boolean => needsQueryKeyFnCall(normalizeTarget(target), spec);
+
 const generateParamArg = (param: InvalidateTargetParam): string => {
   if (!isString(param)) {
     return JSON.stringify(param.literal);

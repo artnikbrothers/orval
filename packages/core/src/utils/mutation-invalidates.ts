@@ -323,6 +323,7 @@ export const resolveMutationInvalidates = (
 export const createMutationInvalidatesFileFiller = ({
   operations,
   output,
+  callsQueryKeyFn = () => true,
 }: {
   operations: readonly (Pick<
     MutationInvalidatesOperation,
@@ -333,6 +334,8 @@ export const createMutationInvalidatesFileFiller = ({
     exportsQueryKeys?: boolean;
   })[];
   output: Pick<NormalizedOutputOptions, 'mode' | 'fileExtension' | 'tsconfig'>;
+  /** Whether the generated invalidation of a target calls its key function. */
+  callsQueryKeyFn?: (target: InvalidateTarget) => boolean;
 }): ((rules: MutationInvalidatesConfig) => MutationInvalidatesConfig) => {
   if (
     output.mode !== OutputMode.TAGS &&
@@ -402,6 +405,8 @@ export const createMutationInvalidatesFileFiller = ({
     const owner = ownerByQueryKeyFn.get(keyFn);
     if (!owner || owner.tag === mutationTag) return target;
     if (!owner.exported) {
+      // A broad predicate filter needs no key function, so nothing to import.
+      if (!callsQueryKeyFn(target)) return target;
       throw new Error(
         `mutationInvalidates: '${onMutations.join("', '")}' (tag '${mutationTag}') ` +
           `invalidates '${query}' from tag '${owner.tag}', whose query keys are not ` +

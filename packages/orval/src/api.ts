@@ -238,6 +238,9 @@ export async function getApiBuilder({
       };
     }),
     output,
+    callsQueryKeyFn: (target) =>
+      queryModule?.invalidateTargetCallsQueryKeyFn(target, context.spec) ??
+      true,
   });
   const withResolvedInvalidates = (
     verbOption: GeneratorVerbOptions,

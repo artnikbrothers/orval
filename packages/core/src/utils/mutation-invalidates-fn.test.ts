@@ -406,6 +406,22 @@ describe('createMutationInvalidatesFileFiller', () => {
       filler([{ onMutations: ['createPets'], invalidates: ['healthCheck'] }]),
     ).toThrow('whose query keys are not exported');
     expect(
+      createMutationInvalidatesFileFiller({
+        operations: [
+          {
+            operationName: 'healthCheck',
+            tags: ['health'],
+            exportsQueryKeys: false,
+          },
+          { operationName: 'createPets', tags: ['pets'] },
+        ],
+        output: tagsSplit,
+        callsQueryKeyFn: () => false,
+      })([{ onMutations: ['createPets'], invalidates: ['healthCheck'] }]),
+    ).toStrictEqual([
+      { onMutations: ['createPets'], invalidates: ['healthCheck'] },
+    ]);
+    expect(
       filler([
         {
           onMutations: ['createPets'],
